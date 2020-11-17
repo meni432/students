@@ -8,6 +8,8 @@ const docClient = new dynamodb.DocumentClient();
 // Get the DynamoDB table name from environment variables
 const tableName = process.env.SAMPLE_TABLE;
 
+
+
 /**
  * A simple example includes a HTTP post method to add one item to a DynamoDB table.
  */
@@ -21,15 +23,29 @@ exports.putItemHandler = async (event) => {
     console.log('received:', JSON.stringify(event));
 
     // Get id and name from the body of the request
-    const { id, name } = JSON.parse(body);
+    const { id, result } = JSON.parse(body);
 
     // Creates a new item, or replaces an old item with a new item
     // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB/DocumentClient.html#put-property
-    const params = {
+    // const params = {
+    //     TableName: tableName,
+    //     Item: { id, result },
+    // };
+    // await docClient.put(params).promise();
+
+    await docClient.update({
         TableName: tableName,
-        Item: { id, name },
-    };
-    await docClient.put(params).promise();
+        Key: { id: id },
+        ReturnValues: 'ALL_NEW',
+        UpdateExpression: 'set #markedLocations = list_append(if_not_exists(#markedLocations, :empty_list), :results)',
+        ExpressionAttributeNames: {
+          '#markedLocations': 'markedLocations'
+        },
+        ExpressionAttributeValues: {
+          ':results': [result],
+          ':empty_list': []
+        }
+      }).promise();
 
     const response = {
         statusCode: 200,
